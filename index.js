@@ -270,7 +270,10 @@ S3Zipper.prototype = {
         }
 
         var t = this;
-        params.zipFileName = '__' + Date.now() + '.zip';
+        
+        if (!params.zipFileName)
+            params.zipFileName = '__' + Date.now() + '.zip';
+        
 
         if (params.s3ZipFileName.indexOf('/') < 0)
             params.s3ZipFileName = params.s3FolderName + "/" + params.s3ZipFileName;
