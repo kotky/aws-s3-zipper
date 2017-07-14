@@ -24,15 +24,22 @@ S3Zipper.prototype = {
     init: function (awsConfig) {
         this.awsConfig = awsConfig;
         AWS.config.update({
-            accessKeyId: awsConfig.accessKeyId,
-            secretAccessKey: awsConfig.secretAccessKey,
-            region: awsConfig.region
+            accessKeyId: this.awsConfig.accessKeyId,
+            secretAccessKey: this.awsConfig.secretAccessKey,
+            region: this.awsConfig.region
         });
-        this.s3bucket = new AWS.S3({
-            params: {
-                Bucket: this.awsConfig.bucket
-            }
-        });
+        this.s3client = s3.createClient({
+            maxAsyncS3: 20,     // this is the default
+            s3RetryCount: 3,    // this is the default
+            s3RetryDelay: 1000, // this is the default
+            multipartUploadThreshold: 20971520, // this is the default (20 MB)
+            multipartUploadSize: 15728640, // this is the default (15 MB)
+            s3Options: {
+              accessKeyId: this.awsConfig.accessKeyId,
+              secretAccessKey: this.awsConfig.secretAccessKey,
+              Bucket: this.awsConfig.bucket
+            },
+          });
 
     }
     , filterOutFiles: function (fileObj) {
@@ -69,7 +76,6 @@ S3Zipper.prototype = {
             callback = arguments[4];
         }
 
-
         var bucketParams = {
             Bucket: this.awsConfig.bucket, /* required */
             Delimiter: "/",
@@ -91,18 +97,12 @@ S3Zipper.prototype = {
         var files ={};
         files.Contents = [];
 
-        var options = {
-            s3Client: this.s3bucket
-            // more options available. See API docs below.
-        };
-        var client = s3.createClient(options);
-
         var realParams = {
             s3Params: bucketParams,
             recursive: params.recursive
         };
 
-        var emitter = client.listObjects(realParams);
+        var emitter = this.s3client.listObjects(realParams);
         emitter.on('data', function (data) {
             if(data && data.Contents) {
                 files.Contents = files.Contents.concat(data.Contents);
